@@ -1,4 +1,51 @@
+const ALLOWED_ORIGINS = [
+  "https://mjeventsrental.com",
+  "https://www.mjeventsrental.com",
+  "http://localhost:3000",
+  "http://127.0.0.1:5500"
+];
+
+function getCorsHeaders(origin = "") {
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : "https://mjeventsrental.com";
+
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Vary": "Origin"
+  };
+}
+
 export default async (req, context) => {
+  const origin = req.headers.get("origin") || "";
+  const corsHeaders = getCorsHeaders(origin);
+
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        ...corsHeaders
+      }
+    });
+  }
+
+  if (req.method !== "GET") {
+    return new Response(
+      JSON.stringify({
+        error: "Method not allowed"
+      }),
+      {
+        status: 405,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders
+        }
+      }
+    );
+  }
+
   try {
     const apiKey = process.env.YOUTUBE_API_KEY;
     const playlistId = process.env.YOUTUBE_PLAYLIST_ID;
@@ -15,7 +62,8 @@ export default async (req, context) => {
         {
           status: 500,
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            ...corsHeaders
           }
         }
       );
@@ -28,8 +76,9 @@ export default async (req, context) => {
     url.searchParams.set("key", apiKey);
 
     const youtubeResponse = await fetch(url.toString(), {
+      method: "GET",
       headers: {
-        Accept: "application/json"
+        "Accept": "application/json"
       }
     });
 
@@ -45,7 +94,8 @@ export default async (req, context) => {
         {
           status: youtubeResponse.status,
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            ...corsHeaders
           }
         }
       );
@@ -88,8 +138,8 @@ export default async (req, context) => {
         status: 200,
         headers: {
           "Content-Type": "application/json",
-          "Cache-Control":
-            "public, max-age=3600, s-maxage=21600, stale-while-revalidate=86400"
+          "Cache-Control": "public, max-age=3600, s-maxage=21600, stale-while-revalidate=86400",
+          ...corsHeaders
         }
       }
     );
@@ -102,7 +152,8 @@ export default async (req, context) => {
       {
         status: 500,
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...corsHeaders
         }
       }
     );
